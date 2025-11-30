@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>日常账本 - 演示版</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e6f7ff 100%);
+      color: #2d3748;
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+
+    /* 顶部导航栏 */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 0 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .toolbar .icon {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+    }
+
+    .toolbar-title {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .toolbar-actions i {
+      width: 32px;
+      height: 32px;
+      margin-left: 20px;
+      cursor: pointer;
+      font-size: 18px;
+      transition: transform 0.2s;
+    }
+
+    .toolbar-actions i:hover {
+      transform: scale(1.1);
+    }
+
+    /* 数据展示区 */
+    .card-container {
+      margin: 20px;
+      background: white;
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .card-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .card-item {
+      text-align: center;
+      flex: 1;
+      padding: 16px;
+      border-radius: 16px;
+      transition: transform 0.2s;
+    }
+
+    .card-item:hover {
+      transform: translateY(-2px);
+    }
+
+    .card-item.income {
+      background: linear-gradient(135deg, #e8f5e8, #f0fff0);
+    }
+
+    .card-item.balance {
+      background: linear-gradient(135deg, #f0f8ff, #e6f3ff);
+    }
+
+    .card-item.budget {
+      background: linear-gradient(135deg, #fff8e1, #fffde7);
+    }
+
+    .card-item.expense {
+      background: linear-gradient(135deg, #ffebee, #ffe0e0);
+    }
+
+    .label {
+      font-size: 14px;
+      color: #718096;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #2d3748;
+    }
+
+    .budget-value {
+      color: #d69e2e;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .budget-value:hover {
+      color: #b7791f;
+      transform: scale(1.05);
+    }
+
+    .budget-value::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: currentColor;
+      opacity: 0.3;
+    }
+
+    /* 添加记账按钮 */
+    .add-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: calc(100% - 40px);
+      margin: 20px auto;
+      padding: 16px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 16px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+      transition: all 0.3s;
+    }
+
+    .add-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    .add-button i {
+      margin-right: 8px;
+    }
+
+    /* 无记录提示 */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      display: none;
+    }
+
+    .empty-image {
+      width: 150px;
+      height: 150px;
+      object-fit: cover;
+      margin-bottom: 20px;
+      opacity: 0.6;
+    }
+
+    .empty-text {
+      font-size: 18px;
+      color: #a0aec0;
+      font-weight: 500;
+    }
+
+    /* 底部导航栏 */
+    .bottom-nav {
+      display: flex;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 70px;
+      background: white;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+      z-index: 1000;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: #718096;
+      cursor: pointer;
+      transition: all 0.3s;
+      padding: 8px 0;
+    }
+
+    .nav-item.active {
+      color: #667eea;
+      transform: translateY(-2px);
+    }
+
+    .nav-item i {
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+
+    .nav-item:hover {
+      background: #f8fafc;
+    }
+
+    /* 浮动语音按钮 */
+    .fab {
+      position: fixed;
+      bottom: 90px;
+      right: 20px;
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+      cursor: pointer;
+      z-index: 999;
+      transition: all 0.3s;
+    }
+
+    .fab:hover {
+      transform: scale(1.1) rotate(10deg);
+      box-shadow: 0 8px 25px rgba(255, 107, 107, 0.5);
+    }
+
+    .fab i {
+      color: white;
+      font-size: 28px;
+    }
+
+    /* 隐藏的弹窗：预算设置 */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0,0,0,0.5);
+      z-index: 1001;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(5px);
+    }
+
+    .modal {
+      background: white;
+      width: 340px;
+      border-radius: 20px;
+      padding: 30px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      animation: modalSlideIn 0.3s ease-out;
+    }
+
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .modal h3 {
+      color: #2d3748;
+      margin-bottom: 20px;
+      font-size: 22px;
+      font-weight: 600;
+    }
+
+    .modal input {
+      width: 100%;
+      padding: 14px;
+      margin: 12px 0;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 16px;
+      transition: border-color 0.3s;
+    }
+
+    .modal input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .modal button {
+      padding: 12px 24px;
+      margin: 0 8px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .modal button.confirm {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .modal button.confirm:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .modal button.cancel {
+      background: #e2e8f0;
+      color: #718096;
+    }
+
+    .modal button.cancel:hover {
+      background: #cbd5e0;
+    }
+
+    /* 记账表单 */
+    .record-form {
+      display: none;
+      margin: 20px;
+      background: white;
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #4a5568;
+      font-weight: 500;
+    }
+
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 14px;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 16px;
+      transition: border-color 0.3s;
+    }
+
+    .form-group input:focus, .form-group select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-buttons {
+      display: flex;
+      gap: 12px;
+    }
+
+    .form-buttons button {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .form-buttons .save {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .form-buttons .cancel {
+      background: #e2e8f0;
+      color: #718096;
+    }
+
+    .form-buttons button:hover {
+      transform: translateY(-1px);
+    }
+
+    /* 记录列表 */
+    .record-list {
+      margin: 20px;
+      background: white;
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+
+    .record-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      margin-bottom: 12px;
+      border-radius: 12px;
+      background: #f8fafc;
+      border-left: 4px solid #667eea;
+    }
+
+    .record-item.income {
+      border-left-color: #48bb78;
+    }
+
+    .record-item.expense {
+      border-left-color: #e53e3e;
+    }
+
+    .record-info {
+      flex: 1;
+    }
+
+    .record-type {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .record-category {
+      color: #718096;
+      font-size: 14px;
+    }
+
+    .record-amount {
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    .record-amount.income {
+      color: #48bb78;
+    }
+
+    .record-amount.expense {
+      color: #e53e3e;
+    }
+
+    .record-date {
+      color: #a0aec0;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 顶部导航栏 -->
+  <div class="toolbar">
+    <i class="fas fa-wallet icon" style="color: white;"></i>
+    <span class="toolbar-title">日常账本</span>
+    <div class="toolbar-actions">
+      <i class="fas fa-search"></i>
+      <i class="fas fa-ellipsis-v"></i>
+    </div>
+  </div>
+
+  <!-- 数据展示区 -->
+  <div class="card-container">
+    <div class="card-row">
+      <div class="card-item income">
+        <div class="label">本月收入</div>
+        <div class="value income-value">0.00</div>
+      </div>
+      <div class="card-item balance">
+        <div class="label">本月结余</div>
+        <div class="value balance-value">0.00</div>
+      </div>
+    </div>
+    <div class="card-row">
+      <div class="card-item budget">
+        <div class="label">剩余预算</div>
+        <div class="value budget-value" id="budgetText">点击设置</div>
+      </div>
+      <div class="card-item expense">
+        <div class="label">本月支出</div>
+        <div class="value expense-value">0.00</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 添加记账按钮 -->
+  <button class="add-button" id="addRecordBtn">
+    <i class="fas fa-plus"></i>
+    添加记账
+  </button>
+
+  <!-- 记账表单 -->
+  <div class="record-form" id="recordForm">
+    <div class="form-group">
+      <label>类型</label>
+      <select id="recordType">
+        <option value="expense">支出</option>
+        <option value="income">收入</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>金额</label>
+      <input type="number" id="recordAmount" placeholder="请输入金额" step="0.01" min="0">
+    </div>
+    <div class="form-group">
+      <label>分类</label>
+      <select id="recordCategory">
+        <option value="餐饮">餐饮</option>
+        <option value="交通">交通</option>
+        <option value="购物">购物</option>
+        <option value="娱乐">娱乐</option>
+        <option value="医疗">医疗</option>
+        <option value="工资">工资</option>
+        <option value="其他">其他</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>备注</label>
+      <input type="text" id="recordNote" placeholder="请输入备注">
+    </div>
+    <div class="form-buttons">
+      <button class="cancel" id="cancelRecord">取消</button>
+      <button class="save" id="saveRecord">保存</button>
+    </div>
+  </div>
+
+  <!-- 记录列表 -->
+  <div class="record-list" id="recordList">
+    <h3 style="margin-bottom: 16px; color: #2d3748;">近期记录</h3>
+    <div id="recordsContainer"></div>
+  </div>
+
+  <!-- 无记录提示 -->
+  <div class="empty-state" id="emptyState">
+    <i class="fas fa-file-invoice-dollar empty-image" style="color: #cbd5e0;"></i>
+    <div class="empty-text">你还没有任何记账...</div>
+  </div>
+
+  <!-- 右下角语音按钮 -->
+  <div class="fab" id="voiceFab">
+    <i class="fas fa-microphone"></i>
+  </div>
+
+  <!-- 底部导航栏 -->
+  <div class="bottom-nav" id="bottomNav">
+    <div class="nav-item active" data-fragment="home">
+      <i class="fas fa-home"></i>
+      <span>首页</span>
+    </div>
+    <div class="nav-item" data-fragment="calendar">
+      <i class="fas fa-calendar-alt"></i>
+      <span>日历</span>
+    </div>
+    <div class="nav-item" data-fragment="record">
+      <i class="fas fa-plus-circle"></i>
+      <span>记账</span>
+    </div>
+    <div class="nav-item" data-fragment="stats">
+      <i class="fas fa-chart-bar"></i>
+      <span>统计</span>
+    </div>
+    <div class="nav-item" data-fragment="profile">
+      <i class="fas fa-user"></i>
+      <span>我的</span>
+    </div>
+  </div>
+
+  <!-- 预算设置弹窗 -->
+  <div class="modal-overlay" id="budgetModal">
+    <div class="modal">
+      <h3><i class="fas fa-money-bill-wave" style="margin-right: 8px;"></i>设置预算</h3>
+      <input type="number" id="budgetInput" placeholder="请输入预算金额" step="0.01" min="0" />
+      <div>
+        <button class="cancel" id="cancelBudget">取消</button>
+        <button class="confirm" id="confirmBudget">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==================== 模拟数据与状态 ====================
+    let records = []; // 模拟数据库 records 表
+    let budget = 0;   // 模拟 SharedPreferences 中的预算值
+    let currentView = 'home'; // 当前视图
+
+    // 获取当月 YYYY-MM 格式
+    function getCurrentMonth() {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    // 查询当月收支
+    function getMonthlyStats() {
+      const month = getCurrentMonth();
+      let income = 0, expense = 0;
+
+      records.forEach(r => {
+        if (r.date.startsWith(month)) {
+          if (r.type === 'income') income += r.amount;
+          else if (r.type === 'expense') expense += r.amount;
+        }
+      });
+
+      const balance = income - expense;
+
+      return { income, expense, balance };
+    }
+
+    // 更新UI显示
+    function updateDisplay() {
+      const stats = getMonthlyStats();
+
+      document.querySelector('.income-value').textContent = stats.income.toFixed(2);
+      document.querySelector('.expense-value').textContent = stats.expense.toFixed(2);
+      document.querySelector('.balance-value').textContent = stats.balance.toFixed(2);
+
+      // 更新预算显示
+      if (budget > 0) {
+        const remaining = budget - stats.expense;
+        document.getElementById('budgetText').textContent = `¥${remaining.toFixed(2)} / ¥${budget.toFixed(2)}`;
+        if (remaining < 0) {
+          document.getElementById('budgetText').style.color = '#e53e3e';
+        } else if (remaining < budget * 0.2) {
+          document.getElementById('budgetText').style.color = '#d69e2e';
+        } else {
+          document.getElementById('budgetText').style.color = '#48bb78';
+        }
+      } else {
+        document.getElementById('budgetText').textContent = '点击设置';
+        document.getElementById('budgetText').style.color = '#2d3748';
+      }
+
+      // 控制无记录提示
+      const emptyState = document.getElementById('emptyState');
+      const recordList = document.getElementById('recordList');
+      if (records.length === 0) {
+        emptyState.style.display = 'block';
+        recordList.style.display = 'none';
+      } else {
+        emptyState.style.display = 'none';
+        recordList.style.display = 'block';
+        renderRecords();
+      }
+    }
+
+    // 渲染记录列表
+    function renderRecords() {
+      const container = document.getElementById('recordsContainer');
+      const month = getCurrentMonth();
+      const monthRecords = records.filter(r => r.date.startsWith(month)).slice(0, 10); // 显示最近10条
+      
+      container.innerHTML = '';
+      
+      if (monthRecords.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: #a0aec0; padding: 20px;">本月暂无记录</div>';
+        return;
+      }
+      
+      monthRecords.forEach(record => {
+        const item = document.createElement('div');
+        item.className = `record-item ${record.type}`;
+        item.innerHTML = `
+          <div class="record-info">
+            <div class="record-type">${record.type === 'income' ? '收入' : '支出'}</div>
+            <div class="record-category">${record.category}</div>
+            <div class="record-date">${record.date}</div>
+          </div>
+          <div class="record-amount ${record.type}">¥${record.amount.toFixed(2)}</div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    // 设置预算
+    function showBudgetDialog() {
+      document.getElementById('budgetModal').style.display = 'flex';
+      document.getElementById('budgetInput').value = budget || '';
+    }
+
+    // 显示记账表单
+    function showRecordForm() {
+      document.getElementById('recordForm').style.display = 'block';
+      document.getElementById('addRecordBtn').style.display = 'none';
+      document.getElementById('recordList').style.display = 'none';
+      document.getElementById('emptyState').style.display = 'none';
+      currentView = 'form';
+    }
+
+    // 隐藏记账表单
+    function hideRecordForm() {
+      document.getElementById('recordForm').style.display = 'none';
+      document.getElementById('addRecordBtn').style.display = 'block';
+      document.getElementById('recordList').style.display = 'block';
+      currentView = 'home';
+      updateDisplay();
+    }
+
+    // 切换视图
+    function switchView(fragment) {
+      // 隐藏所有内容
+      document.getElementById('recordForm').style.display = 'none';
+      document.getElementById('addRecordBtn').style.display = 'block';
+      document.getElementById('recordList').style.display = 'block';
+      
+      if (fragment === 'record') {
+        showRecordForm();
+      } else {
+        currentView = 'home';
+        updateDisplay();
+      }
+    }
+
+    // ==================== 事件绑定 ====================
+    document.addEventListener('DOMContentLoaded', () => {
+
+      // 初始更新
+      updateDisplay();
+
+      // 添加记账按钮 - 修复：直接显示表单而不是切换视图
+      document.getElementById('addRecordBtn').addEventListener('click', () => {
+        showRecordForm();
+      });
+
+      // 保存记账
+      document.getElementById('saveRecord').addEventListener('click', () => {
+        const type = document.getElementById('recordType').value;
+        const amount = parseFloat(document.getElementById('recordAmount').value);
+        const category = document.getElementById('recordCategory').value;
+        const note = document.getElementById('recordNote').value;
+        
+        if (isNaN(amount) || amount <= 0) {
+          alert('请输入有效金额');
+          return;
+        }
+        
+        records.push({
+          type: type,
+          amount: amount,
+          category: category,
+          note: note,
+          date: new Date().toISOString().split('T')[0]
+        });
+        
+        // 重置表单
+        document.getElementById('recordAmount').value = '';
+        document.getElementById('recordNote').value = '';
+        
+        hideRecordForm();
+        updateDisplay();
+      });
+
+      // 取消记账
+      document.getElementById('cancelRecord').addEventListener('click', () => {
+        hideRecordForm();
+      });
+
+      // 预算点击设置
+      document.getElementById('budgetText').addEventListener('click', () => {
+        showBudgetDialog();
+      });
+
+      // 弹窗按钮
+      document.getElementById('cancelBudget').addEventListener('click', () => {
+        document.getElementById('budgetModal').style.display = 'none';
+      });
+
+      document.getElementById('confirmBudget').addEventListener('click', () => {
+        const input = document.getElementById('budgetInput');
+        const val = parseFloat(input.value);
+        if (!isNaN(val) && val >= 0) {
+          budget = val;
+        } else {
+          budget = 0;
+        }
+        document.getElementById('budgetModal').style.display = 'none';
+        updateDisplay();
+      });
+
+      // 底部导航切换
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function () {
+          document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+          this.classList.add('active');
+
+          const fragment = this.getAttribute('data-fragment');
+          switchView(fragment);
+        });
+      });
+
+      // 语音识别按钮
+      document.getElementById('voiceFab').addEventListener('click', () => {
+        if (confirm("是否允许使用语音进行记账？")) {
+          alert("正在启动语音识别...\n请说：今天吃饭花了50元");
+
+          // 模拟语音识别结果
+          setTimeout(() => {
+            const result = "今天吃饭花了50元";
+            parseSpeechResult(result);
+          }, 1500);
+        }
+      });
+
+      // 解析语音输入（简化版）
+      function parseSpeechResult(text) {
+        const amountMatch = text.match(/(\d+(\.\d+)?)元/);
+        const amount = amountMatch ? parseFloat(amountMatch[1]) : null;
+
+        let category = "其他";
+        if (text.includes("吃饭") || text.includes("餐")) category = "餐饮";
+        else if (text.includes("地铁") || text.includes("公交") || text.includes("打车")) category = "交通";
+        else if (text.includes("购物")) category = "购物";
+        else if (text.includes("工资")) category = "工资";
+
+        if (amount !== null) {
+          // 自动创建一笔支出记录
+          records.push({
+            type: 'expense',
+            amount: amount,
+            category: category,
+            note: `[语音] ${text}`,
+            date: new Date().toISOString().split('T')[0]
+          });
+
+          alert(`已识别：\n金额：¥${amount}\n类别：${category}\n已自动添加为支出记录！`);
+          updateDisplay();
+        } else {
+          alert("未能识别金额，请重试。");
+        }
+      }
+
+      // 模拟数据库插入测试数据
+      setTimeout(() => {
+        records.push(
+          { type: 'income', amount: 8000, category: '工资', note: '', date: '2024-08-01' },
+          { type: 'expense', amount: 50, category: '餐饮', note: '午餐', date: '2024-08-03' },
+          { type: 'expense', amount: 30, category: '交通', note: '地铁', date: '2024-08-04' },
+          { type: 'expense', amount: 120, category: '购物', note: '日用品', date: '2024-08-05' }
+        );
+        updateDisplay();
+      }, 500);
+    });
+  </script>
+</body>
+</html>
